@@ -1,0 +1,1374 @@
+<title>Hunter System</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one centered column of "System windows" (glowing holographic panels), fixed bottom tab bar.
+   Single deliberate dark look: a holographic blue-on-void game interface. */
+:root {
+  --void: #060a13;
+  --void-2: #0b1322;
+  --panel: rgba(10, 20, 38, 0.86);
+  --line: #3a8dff;
+  --glow: #5cc8ff;
+  --text: #dce8ff;
+  --dim: #8195b8;
+  --faint: #26344f;
+  --danger: #ff4157;
+  --ok: #4be3a4;
+  --body: #ff7b5c;
+  --mind: #a993ff;
+  --wealth: #f3c454;
+  --f-display: "Saira Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  background: var(--void);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(58, 141, 255, 0.18), transparent 70%),
+    linear-gradient(rgba(92, 200, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(92, 200, 255, 0.035) 1px, transparent 1px);
+  background-size: 100% 100%, 32px 32px, 32px 32px;
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--void); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; }
+
+.wrap {
+  max-width: 760px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px calc(96px + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  gap: 18px;
+}
+
+/* Header */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { font-family: var(--f-display); font-weight: 700; letter-spacing: 0.24em; font-size: 15px; color: var(--glow); text-shadow: 0 0 12px rgba(92, 200, 255, 0.6); }
+.meta { display: flex; gap: 10px; align-items: center; font-family: var(--f-mono); font-size: 11px; color: var(--dim); }
+.sync::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; background: var(--dim); vertical-align: middle; }
+.sync.on::before { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.sync.err::before { background: var(--danger); }
+
+/* System window */
+.win {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid rgba(58, 141, 255, 0.55);
+  box-shadow: inset 0 0 28px rgba(58, 141, 255, 0.10), 0 0 22px rgba(58, 141, 255, 0.14);
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+  backdrop-filter: blur(6px);
+}
+.win::before, .win::after {
+  content: ""; position: absolute; width: 14px; height: 14px; border: 2px solid var(--glow); pointer-events: none;
+  filter: drop-shadow(0 0 4px var(--glow));
+}
+.win::before { top: -2px; left: -2px; border-right: 0; border-bottom: 0; }
+.win::after { bottom: -2px; right: -2px; border-left: 0; border-top: 0; }
+.win.red { border-color: rgba(255, 65, 87, 0.7); box-shadow: inset 0 0 28px rgba(255, 65, 87, 0.14), 0 0 26px rgba(255, 65, 87, 0.22); }
+.win.red::before, .win.red::after { border-color: var(--danger); filter: drop-shadow(0 0 4px var(--danger)); }
+
+.win-head { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.win-head .tag {
+  font-family: var(--f-display); font-weight: 700; letter-spacing: 0.2em; font-size: 14px;
+  padding: 3px 14px; border: 1px solid rgba(92, 200, 255, 0.6); color: var(--text);
+  text-shadow: 0 0 10px rgba(92, 200, 255, 0.7);
+}
+.win.red .win-head .tag { border-color: var(--danger); text-shadow: 0 0 10px rgba(255, 65, 87, 0.8); }
+.bang {
+  width: 22px; height: 22px; display: grid; place-items: center; border: 1px solid currentColor;
+  font-family: var(--f-display); font-weight: 700; font-size: 14px; color: var(--glow); flex: none;
+}
+.win.red .bang { color: var(--danger); }
+
+h1, h2, h3 { margin: 0; font-family: var(--f-display); font-weight: 600; letter-spacing: 0.04em; text-wrap: balance; }
+h2 { font-size: 22px; text-align: center; }
+.sub { color: var(--dim); text-align: center; font-size: 14px; margin: 0; }
+.label { font-family: var(--f-display); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim); }
+.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.rule { height: 1px; background: linear-gradient(90deg, transparent, rgba(92, 200, 255, 0.5), transparent); border: 0; margin: 0; }
+
+/* Status */
+.status-top { display: grid; grid-template-columns: auto 1fr; gap: 6px 20px; align-items: center; }
+.lvl { grid-row: span 3; text-align: center; padding-right: 20px; border-right: 1px solid var(--faint); }
+.lvl .big { font-family: var(--f-display); font-weight: 700; font-size: 64px; line-height: 0.9; color: #fff; text-shadow: 0 0 18px rgba(92, 200, 255, 0.8); }
+.kv { display: flex; gap: 8px; align-items: baseline; min-width: 0; flex-wrap: wrap; }
+.kv b { font-family: var(--f-display); font-weight: 600; font-size: 17px; letter-spacing: 0.03em; overflow-wrap: anywhere; }
+.rank-badge { font-family: var(--f-display); font-weight: 700; font-size: 17px; padding: 0 8px; border: 1px solid var(--glow); color: var(--glow); }
+
+.bar { height: 6px; background: var(--faint); position: relative; overflow: hidden; }
+.bar > i { position: absolute; inset: 0 auto 0 0; background: var(--glow); box-shadow: 0 0 10px var(--glow); transition: width 0.5s ease; }
+.bar.body > i { background: var(--body); box-shadow: 0 0 10px var(--body); }
+.bar.mind > i { background: var(--mind); box-shadow: 0 0 10px var(--mind); }
+.bar.wealth > i { background: var(--wealth); box-shadow: 0 0 10px var(--wealth); }
+.bar.danger > i { background: var(--danger); box-shadow: 0 0 10px var(--danger); }
+.bar-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--dim); }
+
+.areas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.area { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--faint); background: rgba(6, 10, 19, 0.5); min-width: 0; }
+.area .name { display: flex; justify-content: space-between; align-items: baseline; }
+.area .name h3 { font-size: 18px; }
+.area .name .num { font-size: 13px; }
+.area .stats { font-family: var(--f-display); font-size: 12px; letter-spacing: 0.12em; color: var(--dim); }
+.c-body { color: var(--body); } .c-mind { color: var(--mind); } .c-wealth { color: var(--wealth); }
+
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal span { aspect-ratio: 1; max-width: 100%; background: var(--faint); opacity: 0.6; position: relative; }
+.cal span.part { background: rgba(92, 200, 255, 0.35); opacity: 1; }
+.cal span.full { background: var(--glow); box-shadow: 0 0 6px var(--glow); opacity: 1; }
+.cal span.miss { background: rgba(255, 65, 87, 0.45); opacity: 1; }
+.cal span.today { outline: 1px solid #fff; outline-offset: 1px; }
+.cal span.pre { opacity: 0.18; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: -1px; }
+
+.titles { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.title-chip { text-align: left; padding: 10px 12px; border: 1px solid var(--faint); background: transparent; display: grid; gap: 2px; }
+.title-chip b { font-family: var(--f-display); font-weight: 600; font-size: 15px; letter-spacing: 0.03em; }
+.title-chip small { color: var(--dim); font-size: 12px; }
+.title-chip.locked { opacity: 0.45; cursor: default; }
+.title-chip.locked b { filter: blur(0.5px); }
+.title-chip.on { border-color: var(--glow); box-shadow: inset 0 0 12px rgba(92, 200, 255, 0.2); }
+
+/* Daily quest */
+.goals { display: grid; gap: 4px; }
+.goal-group { display: grid; gap: 4px; }
+.goal-group + .goal-group { margin-top: 10px; }
+.goal {
+  display: grid; grid-template-columns: 1fr auto 26px; align-items: center; gap: 12px; padding: 9px 4px;
+  background: transparent; border: 0; border-bottom: 1px dashed var(--faint); text-align: left; width: 100%;
+}
+.goal .t { font-size: 16px; min-width: 0; }
+.goal .target { font-family: var(--f-mono); font-size: 13px; color: var(--dim); white-space: nowrap; }
+.box { width: 22px; height: 22px; border: 1.5px solid var(--dim); display: grid; place-items: center; }
+.goal.done .box { border-color: var(--ok); background: rgba(75, 227, 164, 0.15); box-shadow: 0 0 8px rgba(75, 227, 164, 0.5); }
+.goal.done .box::after { content: ""; width: 10px; height: 6px; border-left: 2px solid var(--ok); border-bottom: 2px solid var(--ok); transform: rotate(-45deg) translate(1px, -1px); }
+.goal.done .t { color: var(--dim); }
+.goal.done .target { color: var(--ok); }
+.warn { color: var(--danger); text-align: center; font-size: 14px; margin: 0; }
+.warn b { font-weight: 600; }
+.countdown { text-align: center; font-family: var(--f-mono); font-size: 13px; color: var(--dim); }
+.reward { text-align: center; font-size: 14px; color: var(--dim); margin: 0; }
+.reward b { color: var(--text); font-weight: 600; }
+
+/* Lists, forms */
+.list { display: grid; gap: 8px; }
+.item { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 12px; border: 1px solid var(--faint); background: rgba(6, 10, 19, 0.5); }
+.item .body-col { min-width: 0; display: grid; gap: 4px; }
+.item .ttl { font-size: 16px; overflow-wrap: anywhere; }
+.item .sm { font-size: 12px; color: var(--dim); }
+.rk { width: 34px; height: 34px; display: grid; place-items: center; font-family: var(--f-display); font-weight: 700; font-size: 18px; border: 1px solid currentColor; }
+.rk-E { color: #9aa7bd; } .rk-D { color: #7fd1a8; } .rk-C { color: #5cc8ff; } .rk-B { color: #a993ff; } .rk-A { color: #ffb15c; } .rk-S { color: #ff4f6d; text-shadow: 0 0 8px #ff4f6d; }
+.actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+.btn {
+  font-family: var(--f-display); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; font-size: 13px;
+  padding: 8px 14px; background: rgba(58, 141, 255, 0.12); border: 1px solid rgba(92, 200, 255, 0.6); color: var(--text);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.btn:hover { background: rgba(58, 141, 255, 0.25); box-shadow: 0 0 12px rgba(92, 200, 255, 0.35); }
+.btn.ghost { background: transparent; border-color: var(--faint); color: var(--dim); }
+.btn.ghost:hover { color: var(--text); border-color: var(--dim); box-shadow: none; }
+.btn.red { border-color: var(--danger); background: rgba(255, 65, 87, 0.12); }
+.btn.red:hover { background: rgba(255, 65, 87, 0.25); box-shadow: 0 0 12px rgba(255, 65, 87, 0.35); }
+.btn.big { padding: 12px 22px; font-size: 15px; }
+.btn.sm { padding: 5px 10px; font-size: 12px; }
+
+form.row, .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
+.field { display: grid; gap: 4px; flex: 1 1 140px; min-width: 0; }
+.field.grow { flex: 3 1 220px; }
+.field.tiny { flex: 0 1 90px; }
+input[type=text], input[type=number], select, textarea {
+  width: 100%; padding: 9px 10px; background: rgba(6, 10, 19, 0.8); border: 1px solid var(--faint); border-radius: 0;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--glow); outline: none; box-shadow: 0 0 0 1px var(--glow); }
+textarea { min-height: 110px; font-family: var(--f-mono); font-size: 12px; resize: vertical; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.chip { padding: 5px 10px; border: 1px dashed var(--faint); background: transparent; font-size: 13px; color: var(--dim); }
+.chip:hover { color: var(--text); border-color: var(--glow); }
+.empty { text-align: center; color: var(--dim); padding: 18px 8px; font-size: 14px; display: grid; gap: 10px; }
+
+.gate-hp { display: grid; gap: 4px; }
+.gate-log { display: flex; gap: 6px; }
+.gate-log input { width: 96px; }
+
+.log { display: grid; gap: 0; max-height: 420px; overflow-y: auto; }
+.log div { display: grid; grid-template-columns: 92px 1fr; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--faint); font-size: 14px; }
+.log time { font-family: var(--f-mono); font-size: 11px; color: var(--dim); padding-top: 2px; }
+.log .xp { color: var(--glow); font-family: var(--f-mono); font-size: 12px; }
+
+details > summary { cursor: pointer; color: var(--dim); font-size: 14px; list-style: none; }
+details > summary::before { content: "+ "; font-family: var(--f-mono); }
+details[open] > summary::before { content: "- "; }
+
+/* Nav */
+nav.tabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  background: rgba(6, 10, 19, 0.94); border-top: 1px solid rgba(58, 141, 255, 0.45);
+  box-shadow: 0 -6px 24px rgba(58, 141, 255, 0.12);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px));
+}
+nav.tabs .in { max-width: 760px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); }
+nav.tabs button {
+  background: transparent; border: 0; padding: 12px 4px 10px; font-family: var(--f-display); font-weight: 600;
+  letter-spacing: 0.14em; font-size: 13px; text-transform: uppercase; color: var(--dim); position: relative;
+}
+nav.tabs button[aria-current="page"] { color: var(--text); text-shadow: 0 0 10px rgba(92, 200, 255, 0.8); }
+nav.tabs button[aria-current="page"]::before { content: ""; position: absolute; top: -1px; left: 22%; right: 22%; height: 2px; background: var(--glow); box-shadow: 0 0 8px var(--glow); }
+nav.tabs .dot { position: absolute; top: 8px; right: 18%; width: 7px; height: 7px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+
+/* Toasts and modal */
+.toasts { position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); left: 0; right: 0; z-index: 40; display: grid; gap: 8px; justify-items: center; pointer-events: none; padding: 0 16px; }
+.toast {
+  max-width: 440px; width: 100%; padding: 10px 14px; background: rgba(8, 16, 32, 0.96); border: 1px solid var(--line);
+  box-shadow: 0 0 20px rgba(58, 141, 255, 0.35); font-size: 14px; display: flex; gap: 10px; align-items: center;
+  animation: tin 0.25s ease-out;
+}
+.toast .bang { width: 18px; height: 18px; font-size: 12px; }
+@keyframes tin { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+.modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(2, 4, 10, 0.78); padding: 20px; }
+.modal .win { width: min(440px, 100%); text-align: center; animation: pop 0.35s ease-out; }
+.modal .huge { font-family: var(--f-display); font-weight: 700; font-size: 44px; letter-spacing: 0.08em; color: #fff; text-shadow: 0 0 20px var(--glow); line-height: 1; }
+.modal .win.red .huge { text-shadow: 0 0 20px var(--danger); }
+.modal p { margin: 0; }
+.modal .lines { display: grid; gap: 4px; font-size: 15px; }
+@keyframes pop { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* Assessment */
+.assess { display: grid; gap: 18px; }
+.assess h3 { font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase; }
+.fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+fieldset.pick { border: 0; padding: 0; margin: 0; display: grid; gap: 6px; min-width: 0; }
+fieldset.pick legend { padding: 0; margin-bottom: 6px; }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pills label { position: relative; }
+.pills input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.pills span { display: inline-block; padding: 7px 12px; border: 1px solid var(--faint); color: var(--dim); font-size: 14px; cursor: pointer; }
+.pills input:checked + span { border-color: var(--glow); color: var(--text); background: rgba(58, 141, 255, 0.16); box-shadow: inset 0 0 10px rgba(92, 200, 255, 0.25); }
+.pills input:focus-visible + span { outline: 2px solid var(--glow); outline-offset: 2px; }
+.hint { font-size: 12px; color: var(--dim); }
+
+/* Program */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.stat { padding: 10px 12px; border: 1px solid var(--faint); background: rgba(6, 10, 19, 0.5); display: grid; gap: 2px; }
+.stat b { font-family: var(--f-mono); font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat small { color: var(--dim); font-size: 12px; }
+.ex { display: grid; gap: 0; }
+.ex div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 2px; border-bottom: 1px dashed var(--faint); }
+.ex div span:last-child { font-family: var(--f-mono); font-size: 13px; color: var(--dim); white-space: nowrap; }
+.note { font-size: 13px; color: var(--dim); margin: 0; }
+.spark { width: 100%; height: auto; display: block; }
+.goal .t small { display: block; font-size: 12px; color: var(--dim); }
+.modal .win { max-height: calc(100vh - 40px); overflow-y: auto; }
+.modal .lines.left { text-align: left; }
+
+@media (max-width: 560px) {
+  .areas { grid-template-columns: 1fr; }
+  .lvl .big { font-size: 52px; }
+  .lvl { padding-right: 14px; }
+  .status-top { column-gap: 14px; }
+  nav.tabs button { letter-spacing: 0.06em; font-size: 12px; }
+  .log div { grid-template-columns: 1fr; gap: 0; }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">THE SYSTEM</div>
+    <div class="meta"><span id="today" class="num"></span><span id="sync" class="sync">This device</span></div>
+  </header>
+  <main id="view"></main>
+</div>
+
+<nav class="tabs" aria-label="Sections">
+  <div class="in">
+    <button data-tab="status">Status</button>
+    <button data-tab="daily">Daily</button>
+    <button data-tab="quests">Quests</button>
+    <button data-tab="gates">Gates</button>
+    <button data-tab="system">System</button>
+  </div>
+</nav>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div id="modal"></div>
+
+<script>
+"use strict";
+/* ---------- Rules ---------- */
+const AREAS = {
+  body:   { name: "Body",   stats: "STR · VIT · AGI" },
+  mind:   { name: "Mind",   stats: "INT · SENSE · WILL" },
+  wealth: { name: "Wealth", stats: "GOLD · LUCK · TRADE" },
+};
+const AREA_KEYS = Object.keys(AREAS);
+const RANKS = ["E", "D", "C", "B", "A", "S"];
+const RANK_XP = { E: 10, D: 20, C: 40, B: 80, A: 150, S: 300 };
+const DAILY_XP = 10;
+const CLEAR_BONUS = 30;
+const GATE_LOG_XP = 5;
+const GATE_CLEAR_MULT = 3;
+const LOG_MAX = 200;
+
+const areaCost = (k) => 40 + 20 * k;      // XP to go from area level k to k+1
+const overallCost = (k) => 100 + 50 * k;  // XP to go from player level k to k+1
+function levelFrom(xp, cost) {
+  let level = 1, need = cost(1);
+  while (xp >= need) { xp -= need; level++; need = cost(level); }
+  return { level, into: xp, need };
+}
+const hunterRank = (L) => L >= 70 ? "S" : L >= 50 ? "A" : L >= 35 ? "B" : L >= 20 ? "C" : L >= 10 ? "D" : "E";
+
+const DEFAULT_DAILIES = [
+  ["body", "Push-ups", "50 reps"],
+  ["body", "Squats", "50 reps"],
+  ["body", "Run or brisk walk", "5 km"],
+  ["mind", "Read", "20 pages"],
+  ["mind", "Meditate", "10 min"],
+  ["mind", "Journal", "3 lines"],
+  ["wealth", "Log every expense", "today"],
+  ["wealth", "Deep work on an income skill", "60 min"],
+  ["wealth", "Move money to savings", "any amount"],
+];
+const DEFAULT_PENALTY = "Clear the Penalty Trial: 30 minutes of hard training (burpees, sprints or a cold shower finish) and no social media for the rest of the day.";
+
+const GATE_IDEAS = [
+  { title: "Emergency fund: 3 months of expenses", area: "wealth", rank: "A", goal: 6000, unit: "$" },
+  { title: "Read 12 books", area: "mind", rank: "B", goal: 12, unit: "books" },
+  { title: "Run 100 km this month", area: "body", rank: "C", goal: 100, unit: "km" },
+  { title: "Pay off a credit card", area: "wealth", rank: "B", goal: 1500, unit: "$" },
+  { title: "Meditate 30 sessions", area: "mind", rank: "C", goal: 30, unit: "sessions" },
+];
+const QUEST_IDEAS = [
+  { title: "Cook every meal at home for a week", area: "body", rank: "C" },
+  { title: "Finish one online course module", area: "mind", rank: "D" },
+  { title: "Cancel subscriptions I don't use", area: "wealth", rank: "D" },
+  { title: "Ask for a raise or raise my rates", area: "wealth", rank: "A" },
+  { title: "Book a health check-up", area: "body", rank: "E" },
+];
+
+const TITLES = [
+  { id: "player",    name: "Player",                       how: "Accept the System",              test: () => true },
+  { id: "early",     name: "Early Riser",                  how: "Clear the Daily Quest once",      test: (s) => clearedDays(s).length >= 1 },
+  { id: "discipline",      name: "Iron Discipline",                  how: "Reach a 7-day streak",            test: (s) => bestStreak(s) >= 7 },
+  { id: "adversity", name: "Unyielding",   how: "Survive a Penalty Quest",         test: (s) => (s.penaltiesCleared || 0) >= 1 },
+  { id: "gate",      name: "Gatebreaker",                  how: "Clear your first Gate",           test: (s) => s.gates.some((g) => g.clearedAt) },
+  { id: "veteran",   name: "Veteran Hunter",               how: "Clear 50 quests",                 test: (s) => s.quests.filter((q) => q.doneAt).length >= 50 },
+  { id: "iron",      name: "Iron Body",                    how: "Body reaches Lv 10",              test: (s) => areaLevel(s, "body") >= 10 },
+  { id: "sage",      name: "Sage",                         how: "Mind reaches Lv 10",              test: (s) => areaLevel(s, "mind") >= 10 },
+  { id: "merchant",  name: "Merchant King",                how: "Wealth reaches Lv 10",            test: (s) => areaLevel(s, "wealth") >= 10 },
+  { id: "unbroken",  name: "Unbroken",                     how: "Reach a 30-day streak",           test: (s) => bestStreak(s) >= 30 },
+  { id: "sovereign",   name: "Sovereign",                      how: "Reach S-Rank",                    test: (s) => hunterRank(playerLevel(s)) === "S" },
+];
+
+/* ---------- Program engine (pure: profile in, plan and daily goals out) ---------- */
+const ACTIVITY = {
+  sedentary: { label: "Mostly sitting", mult: 1.2, steps: 4000 },
+  light:     { label: "On my feet a bit", mult: 1.375, steps: 6000 },
+  moderate:  { label: "Active job or sport", mult: 1.55, steps: 8000 },
+  high:      { label: "Very active", mult: 1.725, steps: 10000 },
+};
+const BODY_GOALS = { recomp: "Get leaner, keep muscle", lose: "Lose weight", build: "Build muscle", maintain: "Stay fit" };
+const EXPERIENCE = { new: "New to lifting", some: "Trained before", regular: "Train regularly" };
+const EQUIPMENT = { none: "No equipment", dumbbells: "Dumbbells at home", gym: "Gym" };
+const WEALTH_GOALS = { save: "Build savings", debt: "Pay off debt", income: "Grow my income", invest: "Start investing" };
+const DIFFICULTY = { 1: "Steady start", 2: "Tough but doable", 3: "No mercy" };
+const TRAIN_DAYS = { 2: [1, 4], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 3, 5, 6] };
+const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const SESSIONS = {
+  none:      { A: ["Squat to a chair", "Incline push-up (hands on a counter)", "Towel or doorframe row", "Glute bridge", "Dead bug"],
+               B: ["Supported split squat (hand on a wall)", "Incline push-up, lower surface", "Backpack row", "Good-morning hip hinge", "Side plank"] },
+  dumbbells: { A: ["Goblet squat", "Dumbbell floor press", "One-arm dumbbell row", "Romanian deadlift", "Dead bug"],
+               B: ["Split squat", "Seated overhead press", "Chest-supported row", "Hip thrust", "Suitcase carry"] },
+  gym:       { A: ["Leg press", "Bench press", "Lat pulldown", "Romanian deadlift", "Cable crunch"],
+               B: ["Goblet or hack squat", "Incline dumbbell press", "Seated cable row", "Hip thrust", "Farmer carry"] },
+};
+const roundTo = (n, step) => Math.round(n / step) * step;
+
+function bodyMetrics(p) {
+  const bmi = p.weightKg / (p.heightCm / 100) ** 2;
+  const bmr = 10 * p.weightKg + 6.25 * p.heightCm - 5 * p.age + (p.sex === "male" ? 5 : -161);
+  return { bmi, bmr, tdee: bmr * ACTIVITY[p.activity].mult };
+}
+
+function buildPlan(p, prog) {
+  const { bmi, bmr, tdee } = bodyMetrics(p);
+  const d = p.difficulty, stage = prog?.stage || 0;
+  const change = { recomp: bmi >= 30 ? -0.2 : bmi >= 25 ? -0.15 : -0.1, lose: bmi >= 30 ? -0.25 : -0.2, build: 0.1, maintain: 0 }[p.goal];
+  const floor = Math.max(p.sex === "male" ? 1600 : 1300, bmr * 0.8);
+  const kcal = roundTo(Math.max(floor, tdee * (1 + change) + (prog?.kcalAdj || 0)), 50);
+  const protein = roundTo(bmi >= 30 ? p.heightCm : p.weightKg * (p.goal === "build" ? 2 : 1.8), 5);
+  const water = Math.min(4, Math.max(2, Math.round(p.weightKg * 0.033 * 2) / 2));
+  const steps = Math.min(d === 3 ? 15000 : 12000, roundTo(ACTIVITY[p.activity].steps + 1000 * d + 500 * stage, 500));
+  const sets = Math.min(5, { new: 3, some: 3, regular: 4 }[p.experience] + (d === 1 ? -1 : d === 3 ? 1 : 0));
+  const reps = { new: "10", some: "8-12", regular: "6-10" }[p.experience];
+  const weeklyLoss = change < 0 ? p.weightKg * (bmi >= 30 ? 0.0075 : 0.005) : 0;
+  const mm = p.mindMinutes;
+  return {
+    bmi, bmr, tdee, kcal, protein, water, steps, sets, reps, weeklyLoss,
+    trainDays: TRAIN_DAYS[p.trainDays],
+    sessionMin: roundTo(10 + 5 * sets * 2.5, 5),
+    pages: Math.min(({ 15: 10, 30: 20, 60: 30 }[mm]) * 2, ({ 15: 10, 30: 20, 60: 30 }[mm]) + 5 * stage),
+    meditate: ({ 15: 5, 30: 10, 60: 15 }[mm]) + (d === 3 ? 5 : 0),
+    heavy: bmi >= 35,
+  };
+}
+
+function sessionFor(p, plan, k) {
+  const date = parseKey(k), idx = plan.trainDays.indexOf(date.getDay());
+  if (idx < 0) return null;
+  const week = Math.floor(date.getTime() / (7 * 864e5));
+  const letter = (week * plan.trainDays.length + idx) % 2 ? "B" : "A";
+  return { letter, exercises: SESSIONS[p.equipment][letter].map((name) =>
+    [name, /plank|carry|dead bug/i.test(name) ? `${plan.sets} × ${p.experience === "new" ? "20" : "30-45"} s` : `${plan.sets} × ${reps(plan, name)}`]) };
+}
+const reps = (plan, name) => (/split|row|carry/i.test(name) ? plan.reps + " each side" : plan.reps);
+
+function generateDailies(p, plan) {
+  const d = p.difficulty, rest = [0, 1, 2, 3, 4, 5, 6].filter((x) => !plan.trainDays.includes(x));
+  const g = (id, area, title, target, dow) => ({ id: "g-" + id, area, title, target, ...(dow ? { dow } : {}) });
+  const out = [
+    g("steps", "body", "Walk", `${plan.steps.toLocaleString()} steps`),
+    g("protein", "body", "Hit your protein", `${plan.protein} g`),
+    g("kcal", "body", p.goal === "build" ? "Eat your calories" : "Stay under your calories", `${plan.kcal.toLocaleString()} kcal`),
+    g("strength", "body", "Strength session", `${plan.sessionMin} min`, plan.trainDays),
+    g("recovery", "body", d === 3 ? "Zone 2 cardio (bike, incline walk or swim)" : "Mobility and stretching", d === 3 ? "25 min" : "10 min", rest),
+  ];
+  if (d >= 2) out.push(g("water", "body", "Drink water", `${plan.water} L`), g("sleep", "body", "Sleep last night", "7+ h"));
+  out.push(g("read", "mind", "Read", `${plan.pages} pages`), g("meditate", "mind", "Meditate", `${plan.meditate} min`));
+  if (d >= 2) out.push(g("journal", "mind", "Plan tomorrow and journal", "3 lines"));
+  if (p.mindMinutes === 60) out.push(g("study", "mind", "Study a skill", "30 min"));
+  if (d === 3) out.push(g("nophone", "mind", "No phone for the first hour after waking", "1 h"));
+  out.push(g("expenses", "wealth", "Log every expense", "today"));
+  const wg = {
+    save:   [["impulse", "No impulse buys (24-hour rule)", "today"], ["save", "Move money to savings", "any amount"]],
+    debt:   [["nodebt", "No new debt", "today"], ["payoff", "Check balances and payoff plan", "5 min"]],
+    income: [["deepwork", "Deep work on an income skill", `${[30, 60, 90][d - 1]} min`], ["outreach", "One step toward a client, raise or offer", "1 action"]],
+    invest: [["learn", "Learn about investing", `${[15, 20, 30][d - 1]} min`], ["save", "Move money to savings", "any amount"]],
+  }[p.wealthGoal];
+  out.push(g(wg[0][0], "wealth", wg[0][1], wg[0][2]));
+  if (d >= 2) out.push(g(wg[1][0], "wealth", wg[1][1], wg[1][2]));
+  return out;
+}
+
+function penaltyFor(p, plan) {
+  return plan.heavy
+    ? "Penalty Trial: a 30-minute brisk walk on top of your step goal, and no social media for the rest of the day."
+    : "Penalty Trial: 30 minutes of hard training (intervals, burpees or a long run) and no social media for the rest of the day.";
+}
+
+function suggestedGates(p, plan, target) {
+  const cur = p.currency || "$", out = [];
+  if (p.goal === "recomp" || p.goal === "lose") {
+    out.push({ gen: "weight", title: "First milestone: lose 5% of bodyweight", area: "body", rank: "A", goal: roundTo(p.weightKg * 0.05, 0.5), unit: "kg", auto: "weight", start: p.weightKg });
+    if (p.waistCm) out.push({ gen: "waist", title: "Take 5 cm off your waist", area: "body", rank: "B", goal: 5, unit: "cm", auto: "waist", start: p.waistCm });
+  } else out.push({ gen: "sessions", title: "Complete 24 strength sessions", area: "body", rank: "B", goal: 24, unit: "sessions" });
+  out.push({ gen: "books", title: `Read ${{ 15: 4, 30: 8, 60: 12 }[p.mindMinutes]} books`, area: "mind", rank: "B", goal: { 15: 4, 30: 8, 60: 12 }[p.mindMinutes], unit: "books" });
+  if (target > 0) out.push({ gen: "money", area: "wealth", rank: "A", goal: target, unit: cur,
+    title: { save: "Build an emergency fund", debt: "Pay off debt", income: "Raise monthly income", invest: "Invest your first target" }[p.wealthGoal] });
+  return out;
+}
+
+/* ---------- Dates ---------- */
+const pad = (n) => String(n).padStart(2, "0");
+const dayKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseKey = (k) => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
+const addDays = (k, n) => { const d = parseKey(k); d.setDate(d.getDate() + n); return dayKey(d); };
+const todayKey = () => dayKey(new Date());
+
+/* ---------- State ---------- */
+const uid = () => Math.random().toString(36).slice(2, 10);
+function newState(name) {
+  const now = Date.now();
+  return {
+    v: 1, name, createdAt: now, createdDay: todayKey(), updatedAt: now, lastSeen: todayKey(),
+    xp: { body: 0, mind: 0, wealth: 0 },
+    dailies: DEFAULT_DAILIES.map(([area, title, target]) => ({ id: uid(), area, title, target })),
+    days: {}, quests: [], gates: [], log: [], weights: [], profile: null, program: null,
+    penalty: null, penaltyText: DEFAULT_PENALTY, penaltiesCleared: 0,
+    titles: ["player"], title: "player",
+  };
+}
+function migrate(s) {
+  s.xp = Object.assign({ body: 0, mind: 0, wealth: 0 }, s.xp);
+  for (const k of ["dailies", "quests", "gates", "log", "titles", "weights"]) if (!Array.isArray(s[k])) s[k] = [];
+  s.profile = s.profile || null;
+  s.program = s.program || null;
+  s.days = s.days || {};
+  s.penaltyText = s.penaltyText || DEFAULT_PENALTY;
+  const renamed = { wolf: "discipline", monarch: "sovereign" };
+  s.titles = s.titles.map((t) => renamed[t] || t);
+  s.title = renamed[s.title] || s.title;
+  return s;
+}
+
+const totalXp = (s) => AREA_KEYS.reduce((a, k) => a + s.xp[k], 0);
+const playerLevel = (s) => levelFrom(totalXp(s), overallCost).level;
+const areaLevel = (s, a) => levelFrom(s.xp[a], areaCost).level;
+const clearedDays = (s) => Object.keys(s.days).filter((k) => s.days[k].cleared).sort();
+function bestStreak(s) {
+  let best = 0, run = 0, prev = null;
+  for (const k of clearedDays(s)) { run = prev && addDays(prev, 1) === k ? run + 1 : 1; best = Math.max(best, run); prev = k; }
+  return best;
+}
+function currentStreak(s) {
+  let k = todayKey();
+  if (!s.days[k]?.cleared) k = addDays(k, -1);
+  let n = 0;
+  while (s.days[k]?.cleared) { n++; k = addDays(k, -1); }
+  return n;
+}
+const xpMult = () => (state.penalty ? 0.5 : 1);
+const dailiesFor = (k) => { const dow = parseKey(k).getDay(); return state.dailies.filter((d) => !d.dow || d.dow.includes(dow)); };
+const currentPlan = () => (state.profile ? buildPlan(state.profile, state.program) : null);
+
+/* ---------- Storage: account (db capability) with this-device fallback ---------- */
+const LS_KEY = "hunter-system.v1";
+let state = null;
+let remoteRef = null, writing = false, writeAgain = false, writeTimer = null;
+
+function loadLocal() { try { const raw = localStorage.getItem(LS_KEY); return raw ? migrate(JSON.parse(raw)) : null; } catch { return null; } }
+function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {} }
+function save() { state.updatedAt = Date.now(); saveLocal(); queueRemote(); }
+function queueRemote() { if (!remoteRef) return; clearTimeout(writeTimer); writeTimer = setTimeout(flushRemote, 700); }
+async function flushRemote() {
+  if (!remoteRef || !state) return;
+  if (writing) { writeAgain = true; return; }
+  writing = true;
+  try { await remoteRef.set({ json: JSON.stringify(state), updatedAt: state.updatedAt }); setSync("on"); }
+  catch { setSync("err"); }
+  finally { writing = false; if (writeAgain) { writeAgain = false; flushRemote(); } }
+}
+function setSync(mode) {
+  const el = document.getElementById("sync");
+  el.className = "sync" + (mode === "on" ? " on" : mode === "err" ? " err" : "");
+  el.textContent = mode === "on" ? "Synced" : mode === "err" ? "Sync failed, saved here" : "This device";
+}
+async function connectAccount() {
+  if (!window.claude || typeof window.claude.use !== "function") return;
+  try {
+    const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    if (!db || !user) return;
+    const id = await user.id();
+    if (!id) return;
+    const ref = db.doc("data/users/" + id + "/state");
+    const snap = await ref.get();
+    let remote = null;
+    if (snap.exists) { try { remote = migrate(JSON.parse(snap.data().json)); } catch {} }
+    remoteRef = ref;
+    if (remote && (!state || (remote.updatedAt || 0) > (state.updatedAt || 0))) {
+      state = remote; saveLocal(); closeModal(); rollover(); render();
+    } else if (state) { await flushRemote(); }
+    setSync("on");
+  } catch { setSync("err"); }
+}
+
+/* ---------- Progress engine ---------- */
+function snapshotLevels() {
+  return { player: playerLevel(state), areas: Object.fromEntries(AREA_KEYS.map((a) => [a, areaLevel(state, a)])), titles: state.titles.slice() };
+}
+function addLog(msg, xp, area) {
+  state.log.unshift({ t: Date.now(), msg, xp: xp || 0, area: area || null });
+  if (state.log.length > LOG_MAX) state.log.length = LOG_MAX;
+}
+function award(area, base) {
+  const xp = Math.round(base * xpMult());
+  state.xp[area] = Math.max(0, state.xp[area] + xp);
+  return xp;
+}
+function checkTitles() {
+  for (const t of TITLES) if (!state.titles.includes(t.id) && t.test(state)) { state.titles.push(t.id); addLog(`Title acquired: ${t.name}`); }
+}
+function afterChange(before) {
+  checkTitles();
+  save();
+  render();
+  const after = snapshotLevels();
+  const lines = [];
+  for (const a of AREA_KEYS) if (after.areas[a] > before.areas[a]) lines.push(`<span class="c-${a}">${AREAS[a].name}</span> reached Lv <b class="num">${after.areas[a]}</b>`);
+  const newTitles = after.titles.filter((t) => !before.titles.includes(t)).map((id) => TITLES.find((t) => t.id === id)?.name).filter(Boolean);
+  const rankUp = hunterRank(after.player) !== hunterRank(before.player) && after.player > before.player;
+  if (after.player > before.player) {
+    addLog(`Level up: Lv ${after.player}`); save();
+    showModal({ head: "NOTIFICATION", huge: "LEVEL UP!", sub: `You have reached Level ${after.player}.`,
+      lines: [...(rankUp ? [`Hunter rank raised to <b>${hunterRank(after.player)}-Rank</b>`] : []), ...lines, ...newTitles.map((n) => `Title acquired: <b>${esc(n)}</b>`)] });
+  } else if (lines.length || newTitles.length) {
+    showModal({ head: "NOTIFICATION", huge: newTitles.length && !lines.length ? "TITLE" : "STAT UP", sub: "", lines: [...lines, ...newTitles.map((n) => `Title acquired: <b>${esc(n)}</b>`)] });
+  }
+}
+
+function dayRec(k) { return state.days[k] || (state.days[k] = { done: [], xp: {}, bonus: 0, cleared: false }); }
+function toggleDaily(id) {
+  const before = snapshotLevels();
+  const k = todayKey(), rec = dayRec(k);
+  const d = state.dailies.find((x) => x.id === id);
+  if (!d) return;
+  if (rec.done.includes(id)) {
+    rec.done = rec.done.filter((x) => x !== id);
+    state.xp[d.area] = Math.max(0, state.xp[d.area] - (rec.xp[id] || 0));
+    delete rec.xp[id];
+  } else {
+    rec.done.push(id);
+    rec.xp[id] = award(d.area, DAILY_XP);
+    toast(`Goal complete: ${d.title}. +${rec.xp[id]} XP ${AREAS[d.area].name}`);
+  }
+  const todays = dailiesFor(k);
+  const all = todays.length > 0 && todays.every((x) => rec.done.includes(x.id));
+  if (all && !rec.cleared) {
+    rec.cleared = true;
+    const each = Math.round(CLEAR_BONUS / 3);
+    rec.bonus = AREA_KEYS.reduce((sum, a) => sum + award(a, each), 0);
+    addLog("Daily Quest cleared", rec.xp ? Object.values(rec.xp).reduce((a, b) => a + b, 0) + rec.bonus : rec.bonus);
+    showModal({ head: "QUEST INFO", huge: "CLEAR", sub: "Daily Quest: Forge Your Strength has been completed.",
+      lines: [`Reward: <b class="num">+${rec.bonus}</b> bonus XP across all areas`, `Streak: <b class="num">${currentStreak(state)}</b> day${currentStreak(state) === 1 ? "" : "s"}`] });
+  } else if (!all && rec.cleared) {
+    rec.cleared = false;
+    const each = Math.round(rec.bonus / 3);
+    for (const a of AREA_KEYS) state.xp[a] = Math.max(0, state.xp[a] - each);
+    rec.bonus = 0;
+    addLog("Daily Quest reopened");
+  }
+  afterChange(before);
+}
+
+function rollover() {
+  if (!state) return;
+  const today = todayKey();
+  if (state.lastSeen === today) return;
+  let k = state.lastSeen, missed = null;
+  while (k < today) {
+    if (k !== state.createdDay && !state.days[k]?.cleared) { missed = missed || k; }
+    k = addDays(k, 1);
+  }
+  state.lastSeen = today;
+  if (missed && !state.penalty) {
+    state.penalty = { since: missed, text: state.penaltyText };
+    addLog(`Daily Quest failed (${missed}). Penalty Quest issued.`);
+    save();
+    showModal({ red: true, head: "WARNING", huge: "PENALTY", sub: "The Daily Quest was not completed. A Penalty Trial has begun.",
+      lines: [esc(state.penaltyText), "XP gains are halved until the Penalty Quest is cleared."] });
+  } else save();
+}
+function clearPenalty() {
+  const before = snapshotLevels();
+  state.penalty = null;
+  state.penaltiesCleared = (state.penaltiesCleared || 0) + 1;
+  addLog("Penalty Quest survived");
+  toast("Penalty Quest cleared. Full XP restored.");
+  afterChange(before);
+}
+
+function addQuest(title, area, rank) {
+  state.quests.unshift({ id: uid(), title, area, rank, createdAt: Date.now(), doneAt: null, xp: 0 });
+  addLog(`Quest accepted: ${title}`); save(); render();
+}
+function clearQuest(id) {
+  const before = snapshotLevels();
+  const q = state.quests.find((x) => x.id === id);
+  if (!q || q.doneAt) return;
+  q.doneAt = Date.now();
+  q.xp = award(q.area, RANK_XP[q.rank]);
+  addLog(`Quest cleared: ${q.title}`, q.xp, q.area);
+  toast(`Quest cleared. +${q.xp} XP ${AREAS[q.area].name}`);
+  afterChange(before);
+}
+function deleteQuest(id) { state.quests = state.quests.filter((q) => q.id !== id); save(); render(); }
+
+function addGate(g) {
+  state.gates.unshift({ id: uid(), progress: 0, createdAt: Date.now(), clearedAt: null, ...g });
+  addLog(`Gate opened: ${g.title}`); save(); render();
+}
+function logGate(id, amount) {
+  const before = snapshotLevels();
+  const g = state.gates.find((x) => x.id === id);
+  if (!g || g.clearedAt || !(amount > 0)) return;
+  g.progress = Math.min(g.goal, +(g.progress + amount).toFixed(2));
+  let xp = award(g.area, GATE_LOG_XP);
+  if (g.progress >= g.goal) {
+    g.clearedAt = Date.now();
+    const bonus = award(g.area, RANK_XP[g.rank] * GATE_CLEAR_MULT);
+    xp += bonus;
+    addLog(`Gate cleared: ${g.title}`, xp, g.area);
+    showModal({ head: "NOTIFICATION", huge: "GATE CLEARED", sub: `The boss of "${esc(g.title)}" has been defeated.`, lines: [`Reward: <b class="num">+${bonus}</b> XP ${AREAS[g.area].name}`] });
+  } else {
+    addLog(`Gate progress: ${g.title} +${fmt(amount)} ${g.unit}`, xp, g.area);
+    toast(`Boss HP -${fmt(amount)} ${g.unit}. +${xp} XP`);
+  }
+  afterChange(before);
+}
+function deleteGate(id) { state.gates = state.gates.filter((g) => g.id !== id); save(); render(); }
+
+/* ---------- Assessment and weekly recalibration ---------- */
+function regenerate() {
+  const plan = currentPlan();
+  const removed = state.program.removed || [];
+  const custom = state.dailies.filter((d) => d.custom);
+  state.dailies = [...generateDailies(state.profile, plan).filter((d) => !removed.includes(d.id)), ...custom];
+  if (!state.penaltyCustom) state.penaltyText = penaltyFor(state.profile, plan);
+  return plan;
+}
+
+function applyAssessment(p, moneyTarget) {
+  const today = todayKey(), first = !state.program;
+  state.profile = p;
+  state.program = first
+    ? { start: today, stage: 0, kcalAdj: 0, nextCheckin: addDays(today, 7), removed: [] }
+    : { ...state.program, kcalAdj: 0 };
+  if (!state.weights.length || state.weights.at(-1).kg !== p.weightKg || state.weights.at(-1).d !== today)
+    state.weights.push({ d: today, kg: p.weightKg, waist: p.waistCm || null });
+  const plan = regenerate();
+  for (const g of suggestedGates(p, plan, moneyTarget))
+    if (!state.gates.some((x) => x.gen === g.gen && !x.clearedAt)) state.gates.push({ id: uid(), progress: 0, createdAt: Date.now(), clearedAt: null, ...g });
+  addLog(first ? "Player Assessment complete. Program generated." : "Player Assessment retaken. Program rebuilt.");
+  save();
+  tab = "daily";
+  render();
+  const lines = [
+    `Target: <b>${plan.kcal.toLocaleString()} kcal</b> a day (maintenance is about ${roundTo(plan.tdee, 50).toLocaleString()})`,
+    `Protein: <b>${plan.protein} g</b> a day to hold on to muscle`,
+    `Steps: <b>${plan.steps.toLocaleString()}</b> a day, rising as you keep up`,
+    `Strength: <b>${plan.trainDays.length}×</b> a week (${plan.trainDays.map((x) => DOW[x]).join(", ")}), ${plan.sets} sets per exercise`,
+  ];
+  if (plan.weeklyLoss) lines.push(`Expected pace: about <b>${plan.weeklyLoss.toFixed(1)} kg</b> a week, mostly fat while protein and lifting protect muscle`);
+  showModal({ head: "PLAYER ANALYSIS", huge: "", sub: `BMI ${plan.bmi.toFixed(1)} · ${BODY_GOALS[p.goal]} · ${DIFFICULTY[p.difficulty]}`,
+    lines, left: true,
+    body: plan.heavy ? `<p class="note" style="text-align:left">At your size the program uses walking instead of running and joint-friendly lifts, so your knees and back can keep up while you get stronger. Get a doctor's OK before training hard if you have heart, blood pressure or joint issues.</p>` : "" });
+}
+
+function completionRate(days) {
+  let due = 0, done = 0;
+  for (let i = 0; i < days; i++) {
+    const k = addDays(todayKey(), -i);
+    if (k < state.program.start) continue;
+    const list = dailiesFor(k), rec = state.days[k];
+    due += list.length;
+    done += rec ? list.filter((x) => rec.done.includes(x.id)).length : 0;
+  }
+  return due ? done / due : 1;
+}
+
+function weeklyCheckin(kg, waist) {
+  const before = snapshotLevels();
+  const p = state.profile, prog = state.program, old = buildPlan(p, prog);
+  const prev = state.weights.at(-1);
+  const rate = completionRate(7);
+  const changes = [];
+  if (rate >= 0.85) { prog.stage++; changes.push("You kept up. Targets go up one step."); }
+  else if (rate < 0.5 && prog.stage > 0) { prog.stage--; changes.push("Completion was low. Targets ease off one step so you can rebuild the habit."); }
+  else changes.push("Targets hold steady this week.");
+  if (prev && rate >= 0.6) {
+    const weeks = Math.max(1, (parseKey(todayKey()) - parseKey(prev.d)) / (7 * 864e5));
+    const pace = (prev.kg - kg) / prev.kg / weeks;
+    if ((p.goal === "recomp" || p.goal === "lose") && pace > 0.012) { prog.kcalAdj += 150; changes.push("You're losing fast enough to risk muscle. Calories go up 150."); }
+    else if ((p.goal === "recomp" || p.goal === "lose") && pace < 0.002) { prog.kcalAdj -= 100; changes.push("Weight held still. Calories go down 100."); }
+    else if (p.goal === "build" && pace > -0.001) { prog.kcalAdj += 100; changes.push("Weight isn't rising. Calories go up 100."); }
+  }
+  p.weightKg = kg;
+  if (waist) p.waistCm = waist;
+  state.weights.push({ d: todayKey(), kg, waist: waist || null });
+  prog.nextCheckin = addDays(todayKey(), 7);
+  const plan = regenerate();
+  for (const g of state.gates) {
+    if (g.clearedAt || !g.auto) continue;
+    const val = g.auto === "weight" ? kg : waist;
+    if (!val) continue;
+    const progress = Math.max(0, Math.min(g.goal, +(g.start - val).toFixed(2)));
+    if (progress > g.progress) { g.progress = progress; award(g.area, GATE_LOG_XP); }
+    if (g.progress >= g.goal) { g.clearedAt = Date.now(); award(g.area, RANK_XP[g.rank] * GATE_CLEAR_MULT); addLog(`Gate cleared: ${g.title}`); }
+  }
+  const xp = award("body", 20);
+  const diff = prev ? kg - prev.kg : 0;
+  addLog(`Weekly Assessment: ${kg} kg${prev ? ` (${diff > 0 ? "+" : ""}${diff.toFixed(1)})` : ""}, ${Math.round(rate * 100)}% of goals done`, xp, "body");
+  const lines = [
+    `Weight: <b class="num">${kg} kg</b>${prev ? ` (${diff > 0 ? "+" : ""}${diff.toFixed(1)} kg)` : ""}`,
+    `Goals done this week: <b class="num">${Math.round(rate * 100)}%</b>`,
+    ...changes,
+  ];
+  if (plan.steps !== old.steps) lines.push(`Steps: ${old.steps.toLocaleString()} → <b>${plan.steps.toLocaleString()}</b>`);
+  if (plan.kcal !== old.kcal) lines.push(`Calories: ${old.kcal.toLocaleString()} → <b>${plan.kcal.toLocaleString()}</b>`);
+  if (plan.protein !== old.protein) lines.push(`Protein: ${old.protein} → <b>${plan.protein} g</b>`);
+  if (plan.pages !== old.pages) lines.push(`Reading: ${old.pages} → <b>${plan.pages} pages</b>`);
+  showModal({ head: "SYSTEM", huge: "RECALIBRATED", sub: "Your program has been adjusted to your progress.", lines, left: true });
+  afterChange(before);
+}
+
+/* ---------- UI helpers ---------- */
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+const $ = (sel, root = document) => root.querySelector(sel);
+function toast(msg) {
+  const el = document.createElement("div");
+  el.className = "toast";
+  el.innerHTML = `<span class="bang">!</span><span>${esc(msg)}</span>`;
+  const box = $("#toasts");
+  box.appendChild(el);
+  while (box.children.length > 3) box.firstElementChild.remove();
+  setTimeout(() => el.remove(), 2800);
+}
+let modalQueue = [];
+function showModal(m) { modalQueue.push(m); if (modalQueue.length === 1) drawModal(); }
+function drawModal() {
+  const m = modalQueue[0];
+  if (!m) { $("#modal").innerHTML = ""; return; }
+  $("#modal").innerHTML = `<div class="modal" role="dialog" aria-modal="true"><div class="win ${m.red ? "red" : ""}">
+    <div class="win-head"><span class="bang">!</span><span class="tag">${m.head}</span></div>
+    ${m.huge ? `<div class="huge">${m.huge}</div>` : ""}
+    ${m.sub ? `<p class="sub">${m.sub}</p>` : ""}
+    ${m.lines?.length ? `<div class="lines${m.left ? " left" : ""}">${m.lines.map((l) => `<p>${l}</p>`).join("")}</div>` : ""}
+    ${m.body || ""}
+    <div class="row" style="justify-content:center">${m.actions || `<button class="btn big" data-act="modal-ok">Confirm</button>`}</div>
+  </div></div>`;
+  const first = $("#modal input") || $("#modal button");
+  first && first.focus();
+}
+function closeModal() { modalQueue.shift(); drawModal(); }
+function areaOptions(sel) { return AREA_KEYS.map((a) => `<option value="${a}" ${a === sel ? "selected" : ""}>${AREAS[a].name}</option>`).join(""); }
+function rankOptions(sel) { return RANKS.map((r) => `<option value="${r}" ${r === sel ? "selected" : ""}>${r}-Rank (${RANK_XP[r]} XP)</option>`).join(""); }
+const pct = (a, b) => (b > 0 ? Math.max(0, Math.min(100, (a / b) * 100)) : 0);
+
+/* ---------- Views ---------- */
+let tab = "status";
+try { tab = localStorage.getItem(LS_KEY + ".tab") || "status"; } catch {}
+if (/^#(assess|status|daily|quests|gates|system)$/.test(location.hash)) tab = location.hash.slice(1);
+let editDailies = false, confirmReset = false, confirmImport = false;
+
+function pills(name, options, sel) {
+  return `<div class="pills">${Object.entries(options).map(([v, label]) =>
+    `<label><input type="radio" name="${name}" value="${v}" ${String(v) === String(sel) ? "checked" : ""}><span>${esc(label)}</span></label>`).join("")}</div>`;
+}
+function viewAssess() {
+  const p = state.profile || {};
+  const num = (id, label, val, attrs, hint) => `<div class="field"><label class="label" for="${id}">${label}</label><input id="${id}" type="number" inputmode="decimal" ${attrs} value="${val ?? ""}">${hint ? `<span class="hint">${hint}</span>` : ""}</div>`;
+  return `
+  <form class="win assess" id="assess">
+    <div class="win-head"><span class="bang">!</span><span class="tag">PLAYER ASSESSMENT</span></div>
+    <p class="sub">The System will measure you and build a program that fits. You can retake this any time from the System tab.</p>
+
+    <h3 class="c-body">Body</h3>
+    <fieldset class="pick"><legend class="label">Sex</legend>${pills("sex", { male: "Male", female: "Female" }, p.sex || "male")}</fieldset>
+    <div class="fields">
+      ${num("a-age", "Age", p.age, 'min="14" max="90" step="1" required placeholder="30"')}
+      ${num("a-height", "Height, cm", p.heightCm, 'min="120" max="230" step="0.5" required placeholder="180"')}
+      ${num("a-weight", "Weight, kg", p.weightKg, 'min="35" max="300" step="0.1" required placeholder="90"')}
+      ${num("a-waist", "Waist, cm", p.waistCm, 'min="40" max="250" step="0.5" placeholder="optional"', "At the navel. Best sign of fat loss.")}
+    </div>
+    <fieldset class="pick"><legend class="label">Goal</legend>${pills("goal", BODY_GOALS, p.goal || "recomp")}</fieldset>
+    <fieldset class="pick"><legend class="label">Daily activity outside workouts</legend>${pills("activity", Object.fromEntries(Object.entries(ACTIVITY).map(([k, v]) => [k, v.label])), p.activity || "light")}</fieldset>
+    <fieldset class="pick"><legend class="label">Lifting experience</legend>${pills("experience", EXPERIENCE, p.experience || "new")}</fieldset>
+    <fieldset class="pick"><legend class="label">Equipment</legend>${pills("equipment", EQUIPMENT, p.equipment || "gym")}</fieldset>
+    <fieldset class="pick"><legend class="label">Strength days per week</legend>${pills("trainDays", { 2: "2", 3: "3", 4: "4", 5: "5" }, p.trainDays || 3)}</fieldset>
+
+    <hr class="rule">
+    <h3 class="c-mind">Mind</h3>
+    <fieldset class="pick"><legend class="label">Time a day for reading, meditation and learning</legend>${pills("mindMinutes", { 15: "15 min", 30: "30 min", 60: "1 hour" }, p.mindMinutes || 30)}</fieldset>
+
+    <hr class="rule">
+    <h3 class="c-wealth">Wealth</h3>
+    <fieldset class="pick"><legend class="label">Main money goal</legend>${pills("wealthGoal", WEALTH_GOALS, p.wealthGoal || "save")}</fieldset>
+    <div class="fields">
+      <div class="field"><label class="label" for="a-cur">Currency</label><input id="a-cur" type="text" maxlength="5" value="${esc(p.currency || "$")}"></div>
+      ${num("a-money", "First money target", "", 'min="0" step="any" placeholder="optional"', "Becomes a Gate, e.g. a 3-month emergency fund.")}
+    </div>
+
+    <hr class="rule">
+    <fieldset class="pick"><legend class="label">Difficulty</legend>${pills("difficulty", DIFFICULTY, p.difficulty || 2)}</fieldset>
+    <p class="note">Steady start: fewer daily goals. Tough but doable: the full set. No mercy: extra cardio, more volume, and higher caps.</p>
+    <div class="row" style="justify-content:center">
+      ${state.profile ? `<button type="button" class="btn ghost big" data-tab="system">Cancel</button>` : ""}
+      <button class="btn big">Analyze</button>
+    </div>
+  </form>`;
+}
+
+function readAssessment(f) {
+  const v = (name) => f.querySelector(`input[name="${name}"]:checked`)?.value;
+  const n = (id) => parseFloat($("#" + id).value);
+  const p = {
+    sex: v("sex"), age: n("a-age"), heightCm: n("a-height"), weightKg: n("a-weight"), waistCm: n("a-waist") || null,
+    goal: v("goal"), activity: v("activity"), experience: v("experience"), equipment: v("equipment"),
+    trainDays: +v("trainDays"), mindMinutes: +v("mindMinutes"), wealthGoal: v("wealthGoal"),
+    currency: $("#a-cur").value.trim() || "$", difficulty: +v("difficulty"),
+  };
+  if (!(p.age >= 14 && p.age <= 90)) return [null, "Enter an age between 14 and 90."];
+  if (!(p.heightCm >= 120 && p.heightCm <= 230)) return [null, "Enter your height in centimeters."];
+  if (!(p.weightKg >= 35 && p.weightKg <= 300)) return [null, "Enter your weight in kilograms."];
+  return [p, n("a-money") || 0];
+}
+
+function viewTraining(plan) {
+  const k = todayKey(), s = sessionFor(state.profile, plan, k);
+  const next = plan.trainDays.map((x) => DOW[x]).join(", ");
+  return `
+  <section class="win">
+    <div class="win-head"><span class="tag">${s ? `TRAINING · SESSION ${s.letter}` : "RECOVERY DAY"}</span></div>
+    ${s ? `<div class="ex">${s.exercises.map(([name, dose]) => `<div><span>${esc(name)}</span><span>${dose}</span></div>`).join("")}</div>
+      <p class="note">Warm up 5-10 min. Pick a weight where the last 2 reps are hard but clean. When you hit the top of the range on every set, add a little weight next time. Rest 90 s between sets.</p>`
+    : `<p class="note" style="text-align:center">No lifting today. Hit your steps${state.profile.difficulty === 3 ? " and cardio" : " and stretch"} so you recover for the next session (${next}).</p>`}
+    <div class="stat-grid">
+      <div class="stat"><small>Calories</small><b>${plan.kcal.toLocaleString()}</b></div>
+      <div class="stat"><small>Protein</small><b>${plan.protein} g</b></div>
+      <div class="stat"><small>Steps</small><b>${plan.steps.toLocaleString()}</b></div>
+      <div class="stat"><small>Water</small><b>${plan.water} L</b></div>
+    </div>
+  </section>`;
+}
+
+function viewCheckin() {
+  const p = state.profile;
+  return `
+  <form class="win" id="checkin">
+    <div class="win-head"><span class="bang">!</span><span class="tag">WEEKLY ASSESSMENT</span></div>
+    <h2>Report your measurements</h2>
+    <p class="sub">Weigh in the morning, after the bathroom, before eating. The System will adjust your program to your progress.</p>
+    <div class="fields">
+      <div class="field"><label class="label" for="c-kg">Weight, kg</label><input id="c-kg" type="number" inputmode="decimal" min="35" max="300" step="0.1" required placeholder="${p.weightKg}"></div>
+      <div class="field"><label class="label" for="c-waist">Waist, cm</label><input id="c-waist" type="number" inputmode="decimal" min="40" max="250" step="0.5" placeholder="${p.waistCm || "optional"}"></div>
+    </div>
+    <div class="row" style="justify-content:center"><button class="btn big">Submit · +20 XP</button></div>
+  </form>`;
+}
+
+function weightChart() {
+  const w = state.weights.slice(-16);
+  if (w.length < 2) return `<p class="note">Starting weight <b class="num">${w[0]?.kg ?? state.profile.weightKg} kg</b>. Your trend appears after the first Weekly Assessment.</p>`;
+  const W = 320, H = 96, padX = 8, padY = 14;
+  const kgs = w.map((x) => x.kg), lo = Math.min(...kgs) - 0.5, hi = Math.max(...kgs) + 0.5;
+  const pts = w.map((x, i) => [padX + (i * (W - 2 * padX)) / (w.length - 1), padY + ((hi - x.kg) * (H - 2 * padY)) / (hi - lo)]);
+  const line = pts.map((p) => p.map((n) => n.toFixed(1)).join(",")).join(" ");
+  const last = pts.at(-1), diff = kgs.at(-1) - kgs[0];
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Weight trend from ${kgs[0]} to ${kgs.at(-1)} kg">
+      <polygon points="${padX},${H - 4} ${line} ${last[0].toFixed(1)},${H - 4}" fill="rgba(92,200,255,0.12)"></polygon>
+      <polyline points="${line}" fill="none" stroke="var(--glow)" stroke-width="2"></polyline>
+      <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="4" fill="var(--glow)"></circle>
+    </svg>
+    <div class="bar-row"><span class="num">${w[0].d}: ${kgs[0]} kg</span><span class="num">${kgs.at(-1)} kg (${diff > 0 ? "+" : ""}${diff.toFixed(1)})</span></div>`;
+}
+
+function viewStatus() {
+  const s = state;
+  const lv = levelFrom(totalXp(s), overallCost);
+  const rank = hunterRank(lv.level);
+  const title = TITLES.find((t) => t.id === s.title)?.name || "None";
+  const streak = currentStreak(s);
+  const today = todayKey();
+  // 5-week calendar ending on this week's Sunday, weeks start Monday
+  const end = parseKey(today); end.setDate(end.getDate() + ((7 - end.getDay()) % 7));
+  const cells = [];
+  for (let i = 34; i >= 0; i--) {
+    const d = new Date(end); d.setDate(end.getDate() - i);
+    const k = dayKey(d), rec = s.days[k];
+    let cls = "";
+    if (k > today || k < s.createdDay) cls = "pre";
+    else if (rec?.cleared) cls = "full";
+    else if (rec?.done?.length) cls = "part";
+    else if (k < today && k !== s.createdDay) cls = "miss";
+    if (k === today) cls += " today";
+    cells.push(`<span class="${cls}" title="${k}"></span>`);
+  }
+  return `
+  <section class="win">
+    <div class="win-head"><span class="tag">STATUS</span></div>
+    <div class="status-top">
+      <div class="lvl"><div class="big num">${lv.level}</div><div class="label">Level</div></div>
+      <div class="kv"><span class="label">Name</span><b>${esc(s.name)}</b></div>
+      <div class="kv"><span class="label">Title</span><b>${esc(title)}</b></div>
+      <div class="kv"><span class="label">Rank</span><span class="rank-badge">${rank}</span><span class="label" style="margin-left:8px">Streak</span><b class="num">${streak}d</b></div>
+    </div>
+    <div style="display:grid;gap:4px">
+      <div class="bar"><i style="width:${pct(lv.into, lv.need)}%"></i></div>
+      <div class="bar-row"><span>EXP</span><span class="num">${fmt(lv.into)} / ${fmt(lv.need)}</span></div>
+    </div>
+    ${s.penalty ? `<p class="warn"><b>Penalty Trial active.</b> XP gains are halved. Clear it on the Daily tab.</p>` : ""}
+    <hr class="rule">
+    <div class="areas">
+      ${AREA_KEYS.map((a) => { const L = levelFrom(s.xp[a], areaCost); return `
+        <div class="area">
+          <div class="name"><h3 class="c-${a}">${AREAS[a].name}</h3><span class="num">Lv ${L.level}</span></div>
+          <div class="stats">${AREAS[a].stats}</div>
+          <div class="bar ${a}"><i style="width:${pct(L.into, L.need)}%"></i></div>
+          <div class="bar-row"><span class="num">${fmt(s.xp[a])} XP</span><span class="num">${fmt(L.need - L.into)} to next</span></div>
+        </div>`; }).join("")}
+    </div>
+  </section>
+
+  ${s.profile ? (() => { const plan = currentPlan(); return `
+  <section class="win">
+    <div class="win-head"><span class="tag">PROGRAM</span></div>
+    <div class="stat-grid">
+      <div class="stat"><small>Goal</small><b style="font-family:var(--f-display);font-size:15px">${BODY_GOALS[s.profile.goal]}</b></div>
+      <div class="stat"><small>Stage</small><b>${s.program.stage + 1}</b></div>
+      <div class="stat"><small>Calories</small><b>${plan.kcal.toLocaleString()} kcal</b></div>
+      <div class="stat"><small>Protein</small><b>${plan.protein} g</b></div>
+      <div class="stat"><small>Next assessment</small><b>${parseKey(s.program.nextCheckin).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</b></div>
+    </div>
+    ${weightChart()}
+  </section>`; })() : `
+  <section class="win">
+    <div class="win-head"><span class="bang">!</span><span class="tag">ASSESSMENT REQUIRED</span></div>
+    <p class="sub">Tell the System about your body, time and money goals, and it will build quests that fit you.</p>
+    <div class="row" style="justify-content:center"><button class="btn big" data-tab="assess">Start assessment</button></div>
+  </section>`}
+
+  <section class="win">
+    <div class="win-head"><span class="tag">RECORD</span></div>
+    <div class="cal" aria-label="Daily Quest record, last five weeks">${cells.join("")}</div>
+    <div class="legend"><span><i style="background:var(--glow)"></i>Cleared</span><span><i style="background:rgba(92,200,255,.35)"></i>Partial</span><span><i style="background:rgba(255,65,87,.45)"></i>Failed</span><span>Best streak <b class="num">${bestStreak(s)}</b>d</span></div>
+  </section>
+
+  <section class="win">
+    <div class="win-head"><span class="tag">TITLES</span></div>
+    <p class="sub">Tap an acquired title to equip it.</p>
+    <div class="titles">
+      ${TITLES.map((t) => { const has = s.titles.includes(t.id); return `
+        <button class="title-chip ${has ? "" : "locked"} ${s.title === t.id ? "on" : ""}" ${has ? `data-act="equip" data-id="${t.id}"` : "disabled"}>
+          <b>${has ? esc(t.name) : "???"}</b><small>${esc(t.how)}</small>
+        </button>`; }).join("")}
+    </div>
+  </section>`;
+}
+
+function viewDaily() {
+  const s = state, rec = s.days[todayKey()] || { done: [] };
+  const todays = dailiesFor(todayKey());
+  const doneCount = todays.filter((d) => rec.done.includes(d.id)).length;
+  const plan = currentPlan();
+  const top = (s.profile && todayKey() >= s.program.nextCheckin ? viewCheckin() : "") + (!s.profile ? `
+  <section class="win">
+    <div class="win-head"><span class="bang">!</span><span class="tag">ASSESSMENT REQUIRED</span></div>
+    <p class="sub">These are starter goals. Take the Player Assessment and the System will build a program around your body, time and money goals.</p>
+    <div class="row" style="justify-content:center"><button class="btn big" data-tab="assess">Start assessment</button></div>
+  </section>` : "");
+  const penalty = top + (s.penalty ? `
+  <section class="win red">
+    <div class="win-head"><span class="bang">!</span><span class="tag">PENALTY QUEST</span></div>
+    <h2>Clear the Penalty Trial</h2>
+    <p class="sub">Issued for the missed Daily Quest on ${esc(s.penalty.since)}.</p>
+    <p style="margin:0;text-align:center">${esc(s.penalty.text)}</p>
+    <p class="warn">XP gains are halved until you clear this.</p>
+    <div class="row" style="justify-content:center"><button class="btn red big" data-act="clear-penalty">I survived</button></div>
+  </section>` : "");
+
+  if (editDailies) {
+    return penalty + `
+    <section class="win">
+      <div class="win-head"><span class="tag">EDIT DAILY QUEST</span></div>
+      <p class="sub">Set goals you can hit every day. Each one is worth ${DAILY_XP} XP, plus a ${CLEAR_BONUS} XP bonus when all are done.</p>
+      <div class="list">
+        ${s.dailies.map((d) => `
+          <div class="row" data-daily="${d.id}">
+            <div class="field tiny"><select aria-label="Area" data-f="area">${areaOptions(d.area)}</select></div>
+            <div class="field grow"><input type="text" aria-label="Goal" data-f="title" value="${esc(d.title)}" maxlength="80"></div>
+            <div class="field tiny"><input type="text" aria-label="Target" data-f="target" value="${esc(d.target)}" maxlength="24"></div>
+            <span class="hint" style="align-self:center">${d.dow ? d.dow.map((x) => DOW[x]).join(" ") : "Daily"}</span>
+            <button class="btn ghost sm" data-act="del-daily" data-id="${d.id}" aria-label="Remove ${esc(d.title)}">Remove</button>
+          </div>`).join("")}
+      </div>
+      <form class="row" id="add-daily">
+        <div class="field tiny"><label class="label" for="nd-area">Area</label><select id="nd-area">${areaOptions("body")}</select></div>
+        <div class="field grow"><label class="label" for="nd-title">New goal</label><input id="nd-title" type="text" placeholder="Drink 2 L of water" maxlength="80" required></div>
+        <div class="field tiny"><label class="label" for="nd-target">Target</label><input id="nd-target" type="text" placeholder="2 L" maxlength="24"></div>
+        <button class="btn">Add</button>
+      </form>
+      <div class="field"><label class="label" for="pen-text">Penalty for a missed day</label><input id="pen-text" type="text" value="${esc(s.penaltyText)}" maxlength="240"></div>
+      <div class="row" style="justify-content:center"><button class="btn big" data-act="done-edit">Save goals</button></div>
+    </section>`;
+  }
+
+  return penalty + `
+  <section class="win">
+    <div class="win-head"><span class="bang">!</span><span class="tag">QUEST INFO</span></div>
+    <h2>Daily Quest: Forge Your Strength</h2>
+    <p class="sub">Goals <span class="num">${doneCount}/${todays.length}</span></p>
+    <div class="goals">
+      ${AREA_KEYS.map((a) => { const list = todays.filter((d) => d.area === a); if (!list.length) return ""; return `
+        <div class="goal-group">
+          <div class="label c-${a}">${AREAS[a].name}</div>
+          ${list.map((d) => { const done = rec.done.includes(d.id); return `
+            <button class="goal ${done ? "done" : ""}" data-act="toggle" data-id="${d.id}" aria-pressed="${done}">
+              <span class="t">${esc(d.title)}</span><span class="target">${done ? "[COMPLETE]" : esc(d.target)}</span><span class="box"></span>
+            </button>`; }).join("")}
+        </div>`; }).join("") || `<div class="empty">No goals set. Add a few to start leveling.</div>`}
+    </div>
+    <p class="warn"><b>WARNING:</b> Goals left unfinished at midnight trigger a Penalty Trial.</p>
+    <div class="countdown">Time remaining <span id="countdown" class="num">--:--:--</span></div>
+    <p class="reward">Reward: <b>${DAILY_XP} XP</b> per goal, <b>+${CLEAR_BONUS} XP</b> clear bonus${s.penalty ? " (halved)" : ""}</p>
+    <div class="row" style="justify-content:center"><button class="btn ghost" data-act="edit-dailies">Edit goals</button></div>
+  </section>
+  ${plan ? viewTraining(plan) : ""}`;
+}
+
+function viewQuests() {
+  const s = state;
+  const active = s.quests.filter((q) => !q.doneAt);
+  const done = s.quests.filter((q) => q.doneAt).sort((a, b) => b.doneAt - a.doneAt);
+  return `
+  <section class="win">
+    <div class="win-head"><span class="tag">NEW QUEST</span></div>
+    <p class="sub">One-off missions. Rank them by how hard they are for you right now.</p>
+    <form class="row" id="add-quest">
+      <div class="field grow"><label class="label" for="q-title">Quest</label><input id="q-title" type="text" placeholder="Cancel subscriptions I don't use" maxlength="100" required></div>
+      <div class="field tiny"><label class="label" for="q-area">Area</label><select id="q-area">${areaOptions("body")}</select></div>
+      <div class="field"><label class="label" for="q-rank">Difficulty</label><select id="q-rank">${rankOptions("D")}</select></div>
+      <button class="btn">Accept</button>
+    </form>
+  </section>
+  <section class="win">
+    <div class="win-head"><span class="tag">ACTIVE QUESTS</span></div>
+    <div class="list">
+      ${active.map((q) => `
+        <div class="item">
+          <span class="rk rk-${q.rank}">${q.rank}</span>
+          <div class="body-col"><span class="ttl">${esc(q.title)}</span><span class="sm"><span class="c-${q.area}">${AREAS[q.area].name}</span> · ${RANK_XP[q.rank]} XP</span></div>
+          <div class="actions"><button class="btn sm" data-act="clear-quest" data-id="${q.id}">Clear</button><button class="btn ghost sm" data-act="del-quest" data-id="${q.id}" aria-label="Abandon ${esc(q.title)}">Abandon</button></div>
+        </div>`).join("") || `<div class="empty"><span>No active quests. Accept one above, or pick a starter:</span>
+          <div class="chips">${QUEST_IDEAS.map((q, i) => `<button class="chip" data-act="idea-quest" data-i="${i}">${esc(q.title)}</button>`).join("")}</div></div>`}
+    </div>
+    ${done.length ? `<details><summary>Cleared quests (${done.length})</summary><div class="list" style="margin-top:10px">
+      ${done.slice(0, 30).map((q) => `<div class="item"><span class="rk rk-${q.rank}">${q.rank}</span><div class="body-col"><span class="ttl" style="color:var(--dim)">${esc(q.title)}</span><span class="sm">Cleared ${new Date(q.doneAt).toLocaleDateString()} · +${q.xp} XP</span></div><span></span></div>`).join("")}
+    </div></details>` : ""}
+  </section>`;
+}
+
+function viewGates() {
+  const s = state;
+  const open = s.gates.filter((g) => !g.clearedAt), cleared = s.gates.filter((g) => g.clearedAt);
+  return `
+  <section class="win">
+    <div class="win-head"><span class="tag">OPEN A GATE</span></div>
+    <p class="sub">Gates are long goals with a number to beat. Log progress to drain the boss's HP; clearing pays ${GATE_CLEAR_MULT}x the rank reward.</p>
+    <form class="row" id="add-gate">
+      <div class="field grow"><label class="label" for="g-title">Goal</label><input id="g-title" type="text" placeholder="Emergency fund: 3 months of expenses" maxlength="100" required></div>
+      <div class="field tiny"><label class="label" for="g-goal">Target</label><input id="g-goal" type="number" min="0.01" step="any" placeholder="6000" required></div>
+      <div class="field tiny"><label class="label" for="g-unit">Unit</label><input id="g-unit" type="text" placeholder="$" maxlength="12"></div>
+      <div class="field tiny"><label class="label" for="g-area">Area</label><select id="g-area">${areaOptions("wealth")}</select></div>
+      <div class="field"><label class="label" for="g-rank">Rank</label><select id="g-rank">${rankOptions("B")}</select></div>
+      <button class="btn">Enter</button>
+    </form>
+  </section>
+  <section class="win">
+    <div class="win-head"><span class="tag">ACTIVE GATES</span></div>
+    <div class="list">
+      ${open.map((g) => `
+        <div class="item" style="grid-template-columns:auto 1fr">
+          <span class="rk rk-${g.rank}">${g.rank}</span>
+          <div class="body-col" style="gap:8px">
+            <span class="ttl">${esc(g.title)}</span>
+            <div class="gate-hp">
+              <div class="bar danger"><i style="width:${100 - pct(g.progress, g.goal)}%"></i></div>
+              <div class="bar-row"><span>Boss HP <span class="num">${fmt(g.goal - g.progress)}</span> ${esc(g.unit)}</span><span class="num">${fmt(g.progress)} / ${fmt(g.goal)} ${esc(g.unit)}</span></div>
+            </div>
+            <form class="row gate-log" data-gate="${g.id}">
+              <input type="number" min="0.01" step="any" placeholder="+ amount" aria-label="Progress to add to ${esc(g.title)}" required>
+              <button class="btn sm">Attack</button>
+              <span style="flex:1"></span>
+              <button type="button" class="btn ghost sm" data-act="del-gate" data-id="${g.id}" aria-label="Close ${esc(g.title)}">Close gate</button>
+            </form>
+          </div>
+        </div>`).join("") || `<div class="empty"><span>No open gates. Pick one to start, then edit the numbers to fit you:</span>
+          <div class="chips">${GATE_IDEAS.map((g, i) => `<button class="chip" data-act="idea-gate" data-i="${i}">${esc(g.title)}</button>`).join("")}</div></div>`}
+    </div>
+    ${cleared.length ? `<details><summary>Cleared gates (${cleared.length})</summary><div class="list" style="margin-top:10px">
+      ${cleared.map((g) => `<div class="item"><span class="rk rk-${g.rank}">${g.rank}</span><div class="body-col"><span class="ttl" style="color:var(--dim)">${esc(g.title)}</span><span class="sm">${fmt(g.goal)} ${esc(g.unit)} · cleared ${new Date(g.clearedAt).toLocaleDateString()}</span></div><span></span></div>`).join("")}
+    </div></details>` : ""}
+  </section>`;
+}
+
+function viewSystem() {
+  const s = state;
+  return `
+  <section class="win">
+    <div class="win-head"><span class="tag">SYSTEM LOG</span></div>
+    <div class="log">
+      ${s.log.map((l) => `<div><time>${new Date(l.t).toLocaleDateString(undefined, { month: "short", day: "numeric" })} ${new Date(l.t).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</time><span>${esc(l.msg)} ${l.xp ? `<span class="xp">+${l.xp} XP</span>` : ""}</span></div>`).join("") || `<div class="empty">Nothing logged yet.</div>`}
+    </div>
+  </section>
+  <section class="win">
+    <div class="win-head"><span class="tag">SETTINGS</span></div>
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <span style="color:var(--dim);font-size:13px">${state.profile ? "Changed your schedule, equipment or goals? Retake the assessment to rebuild your program." : "Take the assessment to get a program built for you."}</span>
+      <button class="btn sm" data-tab="assess">${state.profile ? "Retake assessment" : "Start assessment"}</button>
+    </div>
+    <form class="row" id="rename">
+      <div class="field grow"><label class="label" for="set-name">Player name</label><input id="set-name" type="text" value="${esc(s.name)}" maxlength="40" required></div>
+      <button class="btn">Save</button>
+    </form>
+    <div class="field">
+      <label class="label" for="backup">Backup</label>
+      <textarea id="backup" spellcheck="false" placeholder="Paste a backup here to restore it"></textarea>
+      <div class="row">
+        <button class="btn sm" data-act="export">Copy backup</button>
+        <button class="btn ghost sm" data-act="import">${confirmImport ? "Replace everything with this backup" : "Restore from pasted backup"}</button>
+      </div>
+    </div>
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <span class="sm" style="color:var(--dim);font-size:13px">${remoteRef ? "Progress is saved to your Claude account and follows you across devices." : "Progress is saved in this browser. Copy a backup now and then."}</span>
+      <button class="btn red sm" data-act="reset">${confirmReset ? "Confirm: erase all progress" : "Reset"}</button>
+    </div>
+  </section>
+  <section class="win">
+    <div class="win-head"><span class="tag">RULES</span></div>
+    <div style="display:grid;gap:6px;font-size:14px;color:var(--dim)">
+      <p style="margin:0">Daily goal: <b class="num" style="color:var(--text)">${DAILY_XP}</b> XP. Clearing all goals: <b class="num" style="color:var(--text)">+${CLEAR_BONUS}</b> XP split across Body, Mind and Wealth.</p>
+      <p style="margin:0">Quests pay by rank: ${RANKS.map((r) => `${r} ${RANK_XP[r]}`).join(" · ")} XP. Gates pay ${GATE_LOG_XP} XP per logged attack and ${GATE_CLEAR_MULT}x the rank on clear.</p>
+      <p style="margin:0">Miss a day and the System issues a Penalty Quest. XP is halved until you clear it, and your streak resets.</p>
+      <p style="margin:0">Every 7 days the Weekly Assessment asks for your weight. Finish 85% of your goals and targets rise one stage; under 50% and they ease off. Calories adjust if you lose too fast (muscle at risk) or stall.</p>
+      <p style="margin:0">Hunter rank follows your level: E (1), D (10), C (20), B (35), A (50), S (70).</p>
+    </div>
+  </section>`;
+}
+
+function render() {
+  if (!state) return;
+  $("#today").textContent = new Date().toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  const views = { assess: viewAssess, status: viewStatus, daily: viewDaily, quests: viewQuests, gates: viewGates, system: viewSystem };
+  if (!views[tab]) tab = "status";
+  try { localStorage.setItem(LS_KEY + ".tab", tab); } catch {}
+  $("#view").innerHTML = `<div style="display:grid;gap:18px">${views[tab]()}</div>`;
+  const rec = state.days[todayKey()];
+  const dailyOpen = state.penalty || !(rec && rec.cleared) || (state.program && todayKey() >= state.program.nextCheckin);
+  document.querySelectorAll("nav.tabs button").forEach((b) => {
+    b.setAttribute("aria-current", b.dataset.tab === tab ? "page" : "false");
+    b.querySelector(".dot")?.remove();
+    if (b.dataset.tab === "daily" && dailyOpen) b.insertAdjacentHTML("beforeend", `<span class="dot" aria-label="Daily Quest open"></span>`);
+  });
+  tick();
+}
+
+function tick() {
+  const el = document.getElementById("countdown");
+  if (!el) return;
+  const now = new Date(), mid = new Date(now); mid.setHours(24, 0, 0, 0);
+  const s = Math.max(0, Math.floor((mid - now) / 1000));
+  el.textContent = `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
+}
+
+/* ---------- Intro ---------- */
+function showIntro() {
+  showModal({ head: "NOTIFICATION", huge: "", sub: "",
+    lines: ["A new <b>Player</b> has been detected.", "Begin your training?"],
+    body: `<div class="field" style="text-align:left"><label class="label" for="intro-name">Your name, Hunter</label><input id="intro-name" type="text" maxlength="40" placeholder="Alex" autocomplete="nickname"></div>`,
+    actions: `<button class="btn big" data-act="accept">Accept</button>` });
+}
+
+/* ---------- Events ---------- */
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-tab],[data-act]");
+  if (!btn) return;
+  if (btn.dataset.tab) {
+    tab = btn.dataset.tab; editDailies = false; confirmReset = false; confirmImport = false;
+    try { localStorage.setItem(LS_KEY + ".tab", tab); } catch {}
+    render(); window.scrollTo(0, 0); return;
+  }
+  const id = btn.dataset.id;
+  switch (btn.dataset.act) {
+    case "modal-ok": closeModal(); break;
+    case "accept": {
+      const name = ($("#intro-name")?.value || "").trim() || "Hunter";
+      state = newState(name);
+      addLog("The System has registered you. Welcome, Player.");
+      save(); closeModal(); tab = "assess"; render();
+      break;
+    }
+    case "toggle": toggleDaily(id); break;
+    case "clear-penalty": clearPenalty(); break;
+    case "edit-dailies": editDailies = true; render(); break;
+    case "done-edit": {
+      document.querySelectorAll("[data-daily]").forEach((row) => {
+        const d = state.dailies.find((x) => x.id === row.dataset.daily);
+        if (!d) return;
+        const area = $("[data-f=area]", row).value, title = $("[data-f=title]", row).value.trim() || d.title, target = $("[data-f=target]", row).value.trim();
+        if (area === d.area && title === d.title && target === d.target) return;
+        Object.assign(d, { area, title, target });
+        if (d.id.startsWith("g-") && state.program) { state.program.removed.push(d.id); d.id = uid(); d.custom = true; }
+      });
+      const pt = $("#pen-text").value.trim();
+      if (pt && pt !== state.penaltyText) { state.penaltyText = pt; state.penaltyCustom = true; }
+      editDailies = false; save(); render(); toast("Daily Quest updated.");
+      break;
+    }
+    case "del-daily":
+      if (id.startsWith("g-") && state.program) state.program.removed.push(id);
+      state.dailies = state.dailies.filter((d) => d.id !== id); save(); render(); break;
+    case "equip": state.title = id; save(); render(); toast(`Title equipped: ${TITLES.find((t) => t.id === id).name}`); break;
+    case "clear-quest": clearQuest(id); break;
+    case "del-quest": deleteQuest(id); break;
+    case "idea-quest": { const q = QUEST_IDEAS[+btn.dataset.i]; $("#q-title").value = q.title; $("#q-area").value = q.area; $("#q-rank").value = q.rank; $("#q-title").focus(); break; }
+    case "idea-gate": { const g = GATE_IDEAS[+btn.dataset.i]; $("#g-title").value = g.title; $("#g-goal").value = g.goal; $("#g-unit").value = g.unit; $("#g-area").value = g.area; $("#g-rank").value = g.rank; $("#g-title").focus(); window.scrollTo(0, 0); break; }
+    case "del-gate": deleteGate(id); break;
+    case "export": {
+      const ta = $("#backup"); ta.value = JSON.stringify(state);
+      const done = () => toast("Backup copied. Keep it somewhere safe.");
+      try { navigator.clipboard.writeText(ta.value).then(done, () => { ta.select(); toast("Backup is selected below. Copy it manually."); }); }
+      catch { ta.select(); toast("Backup is selected below. Copy it manually."); }
+      break;
+    }
+    case "import": {
+      let data;
+      try { data = JSON.parse($("#backup").value); if (!data || !data.xp || !Array.isArray(data.dailies)) throw 0; }
+      catch { toast("That backup could not be read. Paste the full text from Copy backup."); confirmImport = false; break; }
+      if (!confirmImport) { confirmImport = true; const v = $("#backup").value; render(); $("#backup").value = v; break; }
+      state = migrate(data); confirmImport = false; save(); render(); toast("Backup restored.");
+      break;
+    }
+    case "reset":
+      if (!confirmReset) { confirmReset = true; render(); break; }
+      confirmReset = false; state = null;
+      try { localStorage.removeItem(LS_KEY); } catch {}
+      if (remoteRef) remoteRef.delete().catch(() => {});
+      $("#view").innerHTML = ""; showIntro();
+      break;
+  }
+});
+
+document.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.id === "add-quest") addQuest($("#q-title").value.trim(), $("#q-area").value, $("#q-rank").value);
+  else if (f.id === "add-gate") {
+    const goal = parseFloat($("#g-goal").value);
+    if (!(goal > 0)) return toast("Set a target above zero.");
+    addGate({ title: $("#g-title").value.trim(), goal, unit: $("#g-unit").value.trim(), area: $("#g-area").value, rank: $("#g-rank").value });
+  } else if (f.id === "add-daily") {
+    state.dailies.push({ id: uid(), custom: true, area: $("#nd-area").value, title: $("#nd-title").value.trim(), target: $("#nd-target").value.trim() });
+    save(); render();
+    $("#nd-title")?.focus();
+  } else if (f.id === "rename") { state.name = $("#set-name").value.trim() || state.name; save(); render(); toast("Name updated."); }
+  else if (f.id === "assess") {
+    const [p, extra] = readAssessment(f);
+    if (!p) return toast(extra);
+    applyAssessment(p, extra); window.scrollTo(0, 0);
+  } else if (f.id === "checkin") {
+    const kg = parseFloat($("#c-kg").value), waist = parseFloat($("#c-waist").value) || null;
+    if (!(kg >= 35 && kg <= 300)) return toast("Enter your weight in kilograms.");
+    weeklyCheckin(kg, waist);
+  }
+  else if (f.dataset.gate) logGate(f.dataset.gate, parseFloat($("input", f).value));
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && e.target.id === "intro-name") { e.preventDefault(); $("[data-act=accept]")?.click(); }
+});
+
+/* ---------- Boot ---------- */
+state = loadLocal();
+if (state) { rollover(); render(); } else showIntro();
+connectAccount();
+setInterval(tick, 1000);
+setInterval(() => { if (state && state.lastSeen !== todayKey()) { rollover(); render(); } }, 30000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && state && state.lastSeen !== todayKey()) { rollover(); render(); } });
+</script>

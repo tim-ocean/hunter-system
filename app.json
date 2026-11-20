@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "Hunter System",
+    "slug": "hunter-system",
+    "scheme": "hunter-system",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#060a13",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hunter.system"
+    },
+    "android": {
+      "package": "com.hunter.system",
+      "adaptiveIcon": {
+        "backgroundColor": "#060a13",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "asyncRoutes": false
+        }
+      ],
+      "expo-font",
+      "expo-sqlite",
+      [
+        "expo-notifications",
+        {
+          "color": "#5cc8ff"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#060a13",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
